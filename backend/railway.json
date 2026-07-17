@@ -2,7 +2,14 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "bash build.sh"
+    "buildCommand": "bash build.sh",
+    "nixpacksPlan": {
+      "phases": {
+        "setup": {
+          "aptPkgs": ["default-libmysqlclient-dev", "pkg-config", "build-essential"]
+        }
+      }
+    }
   },
   "deploy": {
     "startCommand": "gunicorn fir_system.wsgi:application --bind 0.0.0.0:$PORT",
