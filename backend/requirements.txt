@@ -26,3 +26,4 @@ python-dotenv==1.2.2
 # Demo Features
 qrcode[pil]==8.0
 scikit-learn==1.6.1
+openai==1.61.0

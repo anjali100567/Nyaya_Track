@@ -56,6 +56,7 @@ class Case(models.Model):
     fir = models.OneToOneField(FIR, on_delete=models.CASCADE, related_name='case')
     assigned_officer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_cases')
     current_stage = models.CharField(max_length=100, default='Initial Review')
+    is_escalated = models.BooleanField(default=False)
     suggested_bns_section = models.CharField(max_length=50, blank=True, null=True)
     confirmed_bns_section = models.CharField(max_length=50, blank=True, null=True)
     last_updated = models.DateTimeField(auto_now=True)
@@ -81,3 +82,21 @@ class HearingDate(models.Model):
 
     def __str__(self):
         return f"Hearing on {self.date.strftime('%Y-%m-%d')} at {self.court_name}"
+
+class Notification(models.Model):
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"To {self.recipient.username}: {self.message[:20]}"
+
+class Feedback(models.Model):
+    case = models.OneToOneField(Case, on_delete=models.CASCADE, related_name='feedback')
+    rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
+    comments = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Feedback for Case {self.case.id} - Rating {self.rating}"

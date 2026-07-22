@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Station, FIR, Case, Evidence, HearingDate
+from .models import User, Station, FIR, Case, Evidence, HearingDate, Notification, Feedback
 
 STATUS_EXPLANATIONS = {
     'filed': 'Your complaint has been successfully recorded and is awaiting assignment to an investigating officer.',
@@ -20,6 +20,17 @@ class StationSerializer(serializers.ModelSerializer):
         model = Station
         fields = '__all__'
 
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = '__all__'
+
+class FeedbackSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Feedback
+        fields = '__all__'
+        read_only_fields = ['case', 'created_at']
+
 class EvidenceSerializer(serializers.ModelSerializer):
     uploaded_by_name = serializers.CharField(source='uploaded_by.username', read_only=True)
 
@@ -39,7 +50,7 @@ class CaseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Case
-        fields = ['id', 'fir', 'assigned_officer', 'assigned_officer_name', 'current_stage', 'last_updated', 'hearings']
+        fields = ['id', 'fir', 'assigned_officer', 'assigned_officer_name', 'current_stage', 'last_updated', 'hearings', 'is_escalated']
 
 class PublicFIRSerializer(serializers.ModelSerializer):
     station_name = serializers.CharField(source='station.name', read_only=True)

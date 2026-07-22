@@ -1,11 +1,11 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import User, Station, FIR, Case, Evidence, HearingDate
+from .models import User, Station, FIR, Case, Evidence, HearingDate, Notification, Feedback
 from .serializers import (
     UserSerializer, StationSerializer, FIRSerializer,
     CaseSerializer, EvidenceSerializer, HearingDateSerializer,
-    PublicFIRSerializer
+    PublicFIRSerializer, NotificationSerializer, FeedbackSerializer
 )
 from .permissions import IsOwnerCitizen, IsAssignedOfficer, IsStationAdmin
 
@@ -134,6 +134,36 @@ class HearingDateViewSet(viewsets.ModelViewSet):
             return HearingDate.objects.all()
         return HearingDate.objects.none()
 
+class NotificationViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Notification.objects.none()
+        return Notification.objects.filter(recipient=self.request.user).order_by('-created_at')
+
+class FeedbackViewSet(viewsets.ModelViewSet):
+    serializer_class = FeedbackSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Feedback.objects.none()
+        user = self.request.user
+        if user.role == 'citizen':
+            return Feedback.objects.filter(case__fir__citizen=user)
+        elif user.role == 'admin':
+            if user.station:
+                return Feedback.objects.filter(case__fir__station=user.station)
+            return Feedback.objects.all()
+        return Feedback.objects.none()
+
+    def perform_create(self, serializer):
+        case_id = self.request.data.get('case_id')
+        case = get_object_or_404(Case, id=case_id, fir__citizen=self.request.user, fir__status='disposed')
+        serializer.save(case=case)
+
 from django.db.models import Count
 from django.utils import timezone
 from rest_framework.views import APIView
@@ -165,6 +195,79 @@ class BNSSectionPredictView(APIView):
             "disclaimer": "Suggested by AI — not legal advice. Final section to be confirmed by the investigating officer."
         })
 
+from datetime import timedelta
+
+class RunEscalationsView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    
+    def post(self, request):
+        threshold_date = timezone.now() - timedelta(days=15)
+        cases_to_escalate = Case.objects.exclude(fir__status='disposed').filter(
+            is_escalated=False,
+            last_updated__lt=threshold_date
+        )
+        
+        count = 0
+        for case in cases_to_escalate:
+            case.is_escalated = True
+            case.save()
+            count += 1
+            if case.assigned_officer:
+                Notification.objects.create(
+                    recipient=case.assigned_officer,
+                    message=f"URGENT: Case {case.fir.fir_number} has been escalated due to inactivity."
+                )
+            if case.fir.station:
+                admins = User.objects.filter(role='admin', station=case.fir.station)
+                for admin in admins:
+                    Notification.objects.create(
+                        recipient=admin,
+                        message=f"ESCALATION: Case {case.fir.fir_number} requires your attention."
+                    )
+        return Response({"status": "success", "escalated_count": count})
+
+class PublicCrimeTrendsView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        trends = FIR.objects.values('incident_type', 'station__district').annotate(count=Count('id')).order_by('-count')
+        return Response({"trends": trends})
+
+import os
+class AudioTranscriptionView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        audio_file = request.FILES.get('audio')
+        if not audio_file:
+            return Response({"error": "Audio file required"}, status=400)
+            
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            return Response({
+                "transcription": "[MOCKED] This is a mock transcription of the Hindi audio because OPENAI_API_KEY is not set.",
+                "is_mock": True
+            })
+            
+        try:
+            import openai
+            import tempfile
+            client = openai.OpenAI(api_key=api_key)
+            with tempfile.NamedTemporaryFile(suffix='.m4a', delete=False) as tmp:
+                for chunk in audio_file.chunks():
+                    tmp.write(chunk)
+                tmp_path = tmp.name
+                
+            with open(tmp_path, 'rb') as f:
+                transcription = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=f
+                )
+            os.remove(tmp_path)
+            return Response({"transcription": transcription.text})
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
 class AnalyticsView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
 
@@ -180,7 +283,12 @@ class AnalyticsView(APIView):
 
         status_counts = firs.values('status').annotate(count=Count('id'))
         
+        from django.db.models import Avg
         disposed_firs = firs.filter(status='disposed')
+        
+        # Calculate Average Rating from Feedback
+        avg_rating = Feedback.objects.filter(case__fir__in=disposed_firs).aggregate(Avg('rating'))['rating__avg']
+        
         total_days = 0
         disposed_count = disposed_firs.count()
         if disposed_count > 0:
@@ -213,5 +321,6 @@ class AnalyticsView(APIView):
         return Response({
             "status_counts": status_counts,
             "avg_resolution_days": avg_resolution_days,
-            "delay_risk_analysis": risk_data
+            "delay_risk_analysis": risk_data,
+            "avg_citizen_rating": round(avg_rating, 2) if avg_rating else None
         })
