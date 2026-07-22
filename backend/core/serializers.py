@@ -62,7 +62,7 @@ class PublicFIRSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FIR
-        fields = ['tracking_code', 'status', 'status_explainer', 'filed_date', 'station_name']
+        fields = ['tracking_code', 'status', 'status_explainer', 'filed_date', 'station_name', 'is_zero_fir']
 
 class FIRSerializer(serializers.ModelSerializer):
     citizen_name = serializers.CharField(source='citizen.username', read_only=True)
@@ -87,6 +87,6 @@ class FIRSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'fir_number', 'tracking_code', 'citizen', 'citizen_name', 'station', 'station_name',
             'incident_type', 'date', 'location', 'description', 'status', 'status_explainer', 'created_at',
-            'case_details', 'evidence', 'qr_code_url'
+            'case_details', 'evidence', 'qr_code_url', 'is_zero_fir'
         ]
         read_only_fields = ['id', 'fir_number', 'tracking_code', 'citizen', 'status', 'created_at']

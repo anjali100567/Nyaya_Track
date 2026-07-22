@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     FIRViewSet, CaseViewSet, EvidenceViewSet, HearingDateViewSet, AnalyticsView, 
     PublicFIRStatusView, BNSSectionPredictView,
-    NotificationViewSet, FeedbackViewSet, RunEscalationsView, PublicCrimeTrendsView, AudioTranscriptionView
+    NotificationViewSet, FeedbackViewSet, RunEscalationsView, PublicCrimeTrendsView, AudioTranscriptionView,
+    AIStationRecommendationView, DuplicateFIRCheckView
 )
 
 router = DefaultRouter()
@@ -22,4 +23,6 @@ urlpatterns = [
     path('predict-section/', BNSSectionPredictView.as_view(), name='predict-section'),
     path('cron/run-escalations/', RunEscalationsView.as_view(), name='run-escalations'),
     path('transcribe-audio/', AudioTranscriptionView.as_view(), name='transcribe-audio'),
+    path('recommend-station/', AIStationRecommendationView.as_view(), name='recommend-station'),
+    path('check-duplicate-fir/', DuplicateFIRCheckView.as_view(), name='check-duplicate-fir'),
 ]

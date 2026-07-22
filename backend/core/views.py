@@ -53,6 +53,37 @@ class FIRViewSet(viewsets.ModelViewSet):
         buf.seek(0)
         return HttpResponse(buf, content_type='image/png')
 
+    @action(detail=True, methods=['post'])
+    def transfer(self, request, pk=None):
+        fir = self.get_object()
+        if request.user.role != 'admin':
+            return Response({"error": "Only admins can transfer FIRs"}, status=status.HTTP_403_FORBIDDEN)
+            
+        new_station_id = request.data.get('new_station_id')
+        if not new_station_id:
+            return Response({"error": "new_station_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        new_station = get_object_or_404(Station, id=new_station_id)
+        old_station_name = fir.station.name if fir.station else "Unknown"
+        
+        fir.station = new_station
+        fir.is_zero_fir = True
+        fir.save()
+        
+        Notification.objects.create(
+            recipient=fir.citizen,
+            message=f"Your FIR {fir.fir_number} was transferred to {new_station.name} (Zero FIR process)."
+        )
+        
+        new_admins = User.objects.filter(role='admin', station=new_station)
+        for admin in new_admins:
+            Notification.objects.create(
+                recipient=admin,
+                message=f"Zero FIR Transfer: FIR {fir.fir_number} transferred from {old_station_name} to your station."
+            )
+            
+        return Response({"status": "FIR transferred successfully", "new_station": new_station.name})
+
 class CaseViewSet(viewsets.ModelViewSet):
     serializer_class = CaseSerializer
     permission_classes = [permissions.IsAuthenticated, RoleBasedObjectPermission]
@@ -267,6 +298,92 @@ class AudioTranscriptionView(APIView):
             return Response({"transcription": transcription.text})
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
+class AIStationRecommendationView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        description = request.data.get('description')
+        if not description:
+            return Response({"error": "Description is required"}, status=400)
+
+        api_key = os.getenv('OPENAI_API_KEY')
+        stations = list(Station.objects.values('id', 'name', 'district', 'jurisdiction_area'))
+        
+        if not api_key:
+            return Response({
+                "recommended_station_id": stations[0]['id'] if stations else None,
+                "is_mock": True
+            })
+
+        try:
+            import openai
+            import json
+            client = openai.OpenAI(api_key=api_key)
+            
+            prompt = f"""
+            You are a police routing assistant.
+            The following is an incident report: "{description}".
+            The available police stations are:
+            {json.dumps(stations)}
+            
+            Based on the locations, landmarks, or districts mentioned in the description, 
+            determine the most appropriate police station's ID.
+            Return ONLY a valid JSON object with the key "recommended_station_id" containing the integer ID, or null if no match.
+            """
+            
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "system", "content": prompt}],
+                response_format={ "type": "json_object" }
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            return Response({"recommended_station_id": result.get('recommended_station_id')})
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+class DuplicateFIRCheckView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        description = request.data.get('description')
+        if not description:
+            return Response({"error": "Description is required"}, status=400)
+            
+        threshold_date = timezone.now() - timedelta(days=14)
+        recent_firs = list(FIR.objects.filter(created_at__gte=threshold_date).values('id', 'fir_number', 'description', 'incident_type'))
+        
+        if not recent_firs:
+            return Response({"duplicates": []})
+            
+        try:
+            from sklearn.feature_extraction.text import TfidfVectorizer
+            from sklearn.metrics.pairwise import cosine_similarity
+            
+            descriptions = [fir['description'] for fir in recent_firs]
+            descriptions.append(description)
+            
+            vectorizer = TfidfVectorizer(stop_words='english')
+            tfidf_matrix = vectorizer.fit_transform(descriptions)
+            
+            cosine_similarities = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1]).flatten()
+            
+            duplicates = []
+            for idx, score in enumerate(cosine_similarities):
+                if score > 0.6:
+                    duplicates.append({
+                        "fir_id": recent_firs[idx]['id'],
+                        "fir_number": recent_firs[idx]['fir_number'],
+                        "incident_type": recent_firs[idx]['incident_type'],
+                        "similarity_score": round(score, 2)
+                    })
+                    
+            duplicates = sorted(duplicates, key=lambda x: x['similarity_score'], reverse=True)
+            return Response({"duplicates": duplicates})
+            
+        except Exception as e:
+            return Response({"error": "Failed to check duplicates", "details": str(e)}, status=500)
 
 class AnalyticsView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsAdmin]

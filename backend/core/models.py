@@ -34,6 +34,7 @@ class FIR(models.Model):
     fir_number = models.CharField(max_length=50, unique=True, editable=False)
     citizen = models.ForeignKey(User, on_delete=models.CASCADE, related_name='filed_firs')
     station = models.ForeignKey(Station, on_delete=models.CASCADE, related_name='firs')
+    is_zero_fir = models.BooleanField(default=False)
     incident_type = models.CharField(max_length=100)
     date = models.DateTimeField()
     location = models.CharField(max_length=255)

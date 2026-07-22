@@ -130,3 +130,33 @@ class DemoFeaturesTests(APITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data.get('is_mock', False))
+
+    def test_zero_fir_transfer(self):
+        station2 = Station.objects.create(name="Station 2", jurisdiction_area="Add2", district="Dist2")
+        admin = User.objects.create(username="admin_transfer", role="admin", station=self.station)
+        
+        self.client.force_authenticate(user=admin)
+        url = reverse('fir-transfer', kwargs={'pk': self.fir.id})
+        response = self.client.post(url, {"new_station_id": station2.id}, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.fir.refresh_from_db()
+        self.assertEqual(self.fir.station.id, station2.id)
+        self.assertTrue(self.fir.is_zero_fir)
+
+    def test_duplicate_fir_check(self):
+        url = reverse('check-duplicate-fir')
+        data = {"description": "Someone stole my bag at the market."}
+        response = self.client.post(url, data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('duplicates', response.data)
+        self.assertTrue(any(d['fir_id'] == self.fir.id for d in response.data['duplicates']))
+
+    def test_ai_station_recommendation_mock(self):
+        url = reverse('recommend-station')
+        data = {"description": "Incident near Connaught Place"}
+        response = self.client.post(url, data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data.get('is_mock', False))
