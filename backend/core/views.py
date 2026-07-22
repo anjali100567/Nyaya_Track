@@ -17,6 +17,9 @@ class FIRViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, RoleBasedObjectPermission]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return FIR.objects.none()
+
         user = self.request.user
         if user.role == 'citizen':
             return FIR.objects.filter(citizen=user)
@@ -55,6 +58,9 @@ class CaseViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, RoleBasedObjectPermission]
     
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Case.objects.none()
+
         user = self.request.user
         if user.role == 'citizen':
             return Case.objects.filter(fir__citizen=user)
@@ -92,6 +98,9 @@ class EvidenceViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, RoleBasedObjectPermission]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Evidence.objects.none()
+
         user = self.request.user
         if user.role == 'citizen':
             return Evidence.objects.filter(fir__citizen=user)
@@ -111,6 +120,9 @@ class HearingDateViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, RoleBasedObjectPermission]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return HearingDate.objects.none()
+
         user = self.request.user
         if user.role == 'citizen':
             return HearingDate.objects.filter(case__fir__citizen=user)
