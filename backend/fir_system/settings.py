@@ -85,7 +85,7 @@ REST_FRAMEWORK = {
 }
 
 FIREBASE_CREDENTIALS_PATH = os.getenv('FIREBASE_CREDENTIALS_PATH', '')
-
+FIREBASE_CREDENTIALS_JSON = os.getenv('FIREBASE_CREDENTIALS_JSON', '')
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -93,11 +93,11 @@ FIREBASE_CREDENTIALS_PATH = os.getenv('FIREBASE_CREDENTIALS_PATH', '')
 DATABASES = {
     'default': {
         'ENGINE': 'mysql.connector.django',
-        'NAME': os.getenv('DB_NAME', 'fir_system_db'),
-        'USER': os.getenv('DB_USER', 'root'),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '3306'),
+        'NAME': os.getenv('DB_NAME', 'fir_system_db').strip(),
+        'USER': os.getenv('DB_USER', 'root').strip(),
+        'PASSWORD': os.getenv('DB_PASSWORD', '').strip(),
+        'HOST': os.getenv('DB_HOST', 'localhost').strip(),
+        'PORT': os.getenv('DB_PORT', '3306').strip(),
     }
 }
 

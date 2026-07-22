@@ -24,7 +24,12 @@ class FirebaseAuthentication(BaseAuthentication):
         # Initialize Firebase if not already initialized
         if not firebase_admin._apps:
             try:
-                if hasattr(settings, 'FIREBASE_CREDENTIALS_PATH') and settings.FIREBASE_CREDENTIALS_PATH:
+                if hasattr(settings, 'FIREBASE_CREDENTIALS_JSON') and settings.FIREBASE_CREDENTIALS_JSON:
+                    import json
+                    cred_dict = json.loads(settings.FIREBASE_CREDENTIALS_JSON)
+                    cred = credentials.Certificate(cred_dict)
+                    firebase_admin.initialize_app(cred)
+                elif hasattr(settings, 'FIREBASE_CREDENTIALS_PATH') and settings.FIREBASE_CREDENTIALS_PATH:
                     cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
                     firebase_admin.initialize_app(cred)
                 else:
