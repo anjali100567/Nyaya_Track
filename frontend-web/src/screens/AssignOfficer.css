@@ -1,0 +1,98 @@
+.assignment-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.assign-details, .officers-list {
+  padding: 32px;
+}
+
+.fir-summary {
+  margin-top: 24px;
+}
+
+.fir-summary h4 {
+  font-size: 20px;
+  color: var(--primary-navy);
+}
+
+.fir-summary .type {
+  font-weight: 600;
+  color: var(--warning-amber);
+  margin-bottom: 12px;
+}
+
+.fir-summary .desc {
+  color: var(--text-main);
+  line-height: 1.6;
+}
+
+.ai-suggestion-box {
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px dashed var(--brass-gold);
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.ai-suggestion-box h5 {
+  color: #b89112;
+}
+
+.search-bar.full input {
+  width: 100%;
+}
+
+.officer-card {
+  border: 1px solid rgba(15, 39, 71, 0.1);
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.officer-card.recommended {
+  border: 2px solid var(--brass-gold);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.05) 0%, rgba(255, 255, 255, 0.8) 100%);
+}
+
+.off-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.off-profile {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.off-profile h4 {
+  margin-bottom: 4px;
+}
+
+.off-profile span {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.navy-icon {
+  color: var(--primary-navy);
+}
+
+.workload-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.workload-badge.heavy {
+  background: rgba(198, 40, 40, 0.1);
+  color: var(--critical-red);
+}
+
+.workload-badge.light {
+  background: rgba(46, 125, 50, 0.1);
+  color: var(--forest-green);
+}

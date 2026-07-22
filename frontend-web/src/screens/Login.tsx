@@ -10,7 +10,8 @@ const Login: React.FC = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (role === 'citizen') navigate('/citizen/dashboard');
-    // We will handle officer/admin later
+    else if (role === 'officer') navigate('/officer/dashboard');
+    else if (role === 'admin') navigate('/admin/dashboard');
   };
 
   return (

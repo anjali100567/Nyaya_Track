@@ -1,0 +1,79 @@
+.cases-table-section {
+  padding: 24px;
+}
+
+.filters {
+  display: flex;
+  gap: 16px;
+}
+
+.filter-select {
+  padding: 8px 16px;
+  border: 1px solid rgba(15, 39, 71, 0.2);
+  border-radius: 8px;
+  background: white;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-main);
+}
+
+.cases-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.cases-table th, .cases-table td {
+  padding: 16px;
+  text-align: left;
+  border-bottom: 1px solid rgba(15, 39, 71, 0.05);
+}
+
+.cases-table th {
+  color: var(--text-light);
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.priority-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.priority-badge.high {
+  background: rgba(198, 40, 40, 0.1);
+  color: var(--critical-red);
+}
+
+.priority-badge.medium {
+  background: rgba(249, 168, 37, 0.1);
+  color: var(--warning-amber);
+}
+
+.priority-badge.low {
+  background: rgba(46, 125, 50, 0.1);
+  color: var(--forest-green);
+}
+
+.btn-text {
+  background: transparent;
+  border: none;
+  color: var(--primary-navy);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-text:hover {
+  text-decoration: underline;
+}
+
+.stat-card.red .stat-icon-wrapper {
+  background: rgba(198, 40, 40, 0.1);
+  color: var(--critical-red);
+}
