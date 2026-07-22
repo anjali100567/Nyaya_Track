@@ -5,7 +5,7 @@
     "buildCommand": "bash build.sh"
   },
   "deploy": {
-    "startCommand": "gunicorn fir_system.wsgi:application --bind 0.0.0.0:$PORT",
+    "startCommand": "python manage.py migrate && gunicorn fir_system.wsgi:application --bind 0.0.0.0:$PORT",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
