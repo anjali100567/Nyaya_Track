@@ -147,4 +147,11 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
 ]
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
+# Also make sure your production domain is trusted for CSRF, 
+# since you're sending an X-CSRFTOKEN header:
+CSRF_TRUSTED_ORIGINS = ['https://nyayatrack-production.up.railway.app']
+
 AUTH_USER_MODEL = 'core.User'
