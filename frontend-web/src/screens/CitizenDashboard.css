@@ -34,7 +34,7 @@
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 24px;
   margin-bottom: 24px;
 }
@@ -195,4 +195,54 @@
 .notif-content span {
   font-size: 11px;
   color: var(--text-light);
+}
+
+.quick-actions-panel {
+  padding: 24px;
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.qa-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: rgba(15, 39, 71, 0.03);
+  border: 1px solid rgba(15, 39, 71, 0.1);
+  border-radius: 12px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--primary-navy);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.qa-btn:hover {
+  background: var(--primary-navy);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(15, 39, 71, 0.2);
+}
+
+.qa-btn.red {
+  color: var(--critical-red);
+  border-color: rgba(198, 40, 40, 0.2);
+  background: rgba(198, 40, 40, 0.05);
+}
+
+.qa-btn.red:hover {
+  background: var(--critical-red);
+  color: white;
+}
+
+.mb-4 {
+  margin-bottom: 24px;
 }
