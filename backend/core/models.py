@@ -39,11 +39,14 @@ class FIR(models.Model):
     location = models.CharField(max_length=255)
     description = models.TextField()
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='filed')
+    tracking_code = models.CharField(max_length=32, unique=True, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
         if not self.fir_number:
             self.fir_number = str(uuid.uuid4()).split('-')[0].upper()
+        if not self.tracking_code:
+            self.tracking_code = uuid.uuid4().hex[:12]
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -53,6 +56,8 @@ class Case(models.Model):
     fir = models.OneToOneField(FIR, on_delete=models.CASCADE, related_name='case')
     assigned_officer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_cases')
     current_stage = models.CharField(max_length=100, default='Initial Review')
+    suggested_bns_section = models.CharField(max_length=50, blank=True, null=True)
+    confirmed_bns_section = models.CharField(max_length=50, blank=True, null=True)
     last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):

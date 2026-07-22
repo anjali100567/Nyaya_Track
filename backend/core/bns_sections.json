@@ -1,0 +1,32 @@
+[
+  {
+    "section_number": "BNS 303(2)",
+    "title": "Theft",
+    "short_description": "Whoever, intending to take dishonestly any movable property out of the possession of any person without that person's consent, moves that property in order to such taking, is said to commit theft.",
+    "keywords": ["steal", "rob", "thief", "stolen", "burglary", "snatch", "pickpocket"]
+  },
+  {
+    "section_number": "BNS 115(2)",
+    "title": "Voluntarily causing hurt",
+    "short_description": "Whoever does any act with the intention of thereby causing hurt to any person, or with the knowledge that he is likely thereby to cause hurt to any person, and does thereby cause hurt to any person, is said voluntarily to cause hurt.",
+    "keywords": ["beat", "hit", "punch", "assault", "injury", "blood", "slap", "attack"]
+  },
+  {
+    "section_number": "BNS 318(4)",
+    "title": "Cheating",
+    "short_description": "Whoever, by deceiving any person, fraudulently or dishonestly induces the person so deceived to deliver any property to any person, or to consent that any person shall retain any property, or intentionally induces the person so deceived to do or omit to do anything which he would not do or omit if he were not so deceived.",
+    "keywords": ["fraud", "scam", "cheat", "deceive", "fake", "money", "con", "trick"]
+  },
+  {
+    "section_number": "BNS 351(2)",
+    "title": "Criminal Intimidation",
+    "short_description": "Whoever threatens another with any injury to his person, reputation or property, or to the person or reputation of any one in whom that person is interested, with intent to cause alarm to that person.",
+    "keywords": ["threaten", "kill", "blackmail", "scare", "intimidate", "warn", "extort"]
+  },
+  {
+    "section_number": "BNS 330",
+    "title": "House-trespass",
+    "short_description": "Whoever commits criminal trespass by entering into or remaining in any building, tent or vessel used as a human dwelling or any building used as a place for worship, or as a place for the custody of property, is said to commit house-trespass.",
+    "keywords": ["break in", "trespass", "enter", "house", "intruder", "unauthorized"]
+  }
+]

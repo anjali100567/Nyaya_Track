@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import FIRViewSet, CaseViewSet, EvidenceViewSet, HearingDateViewSet, AnalyticsView
+from .views import FIRViewSet, CaseViewSet, EvidenceViewSet, HearingDateViewSet, AnalyticsView, PublicFIRStatusView, BNSSectionPredictView
 
 router = DefaultRouter()
 router.register(r'firs', FIRViewSet, basename='fir')
@@ -11,4 +11,6 @@ router.register(r'hearings', HearingDateViewSet, basename='hearing')
 urlpatterns = [
     path('', include(router.urls)),
     path('analytics/', AnalyticsView.as_view(), name='analytics'),
+    path('public/fir-status/<str:tracking_code>/', PublicFIRStatusView.as_view(), name='public-fir-status'),
+    path('predict-section/', BNSSectionPredictView.as_view(), name='predict-section'),
 ]

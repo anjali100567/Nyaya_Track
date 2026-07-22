@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from .models import User, Station, FIR, Case, Evidence, HearingDate
 from .serializers import (
     UserSerializer, StationSerializer, FIRSerializer,
-    CaseSerializer, EvidenceSerializer, HearingDateSerializer
+    CaseSerializer, EvidenceSerializer, HearingDateSerializer,
+    PublicFIRSerializer
 )
 from .permissions import IsOwnerCitizen, IsAssignedOfficer, IsStationAdmin
 
@@ -29,6 +30,25 @@ class FIRViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(citizen=self.request.user)
+
+    @action(detail=True, methods=['get'])
+    def qr(self, request, pk=None):
+        import qrcode
+        import io
+        from django.http import HttpResponse
+        from rest_framework.reverse import reverse
+
+        fir = self.get_object()
+        if not fir.tracking_code:
+            return Response({"error": "Tracking code not generated yet"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        public_url = request.build_absolute_uri(reverse('public-fir-status', kwargs={'tracking_code': fir.tracking_code}))
+        
+        img = qrcode.make(public_url)
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+        return HttpResponse(buf, content_type='image/png')
 
 class CaseViewSet(viewsets.ModelViewSet):
     serializer_class = CaseSerializer
@@ -106,6 +126,32 @@ from django.db.models import Count
 from django.utils import timezone
 from rest_framework.views import APIView
 from .permissions import IsAdmin
+from django.shortcuts import get_object_or_404
+
+class PublicFIRStatusView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, tracking_code):
+        fir = get_object_or_404(FIR, tracking_code=tracking_code)
+        serializer = PublicFIRSerializer(fir)
+        return Response(serializer.data)
+
+from .ai_utils import suggest_sections
+
+class BNSSectionPredictView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        description = request.data.get('description')
+        if not description:
+            return Response({"error": "Description is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        suggestions = suggest_sections(description)
+        
+        return Response({
+            "suggestions": suggestions,
+            "disclaimer": "Suggested by AI — not legal advice. Final section to be confirmed by the investigating officer."
+        })
 
 class AnalyticsView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
