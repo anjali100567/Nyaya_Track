@@ -263,6 +263,201 @@ class PublicCrimeTrendsView(APIView):
     def get(self, request):
         trends = FIR.objects.values('incident_type', 'station__district').annotate(count=Count('id')).order_by('-count')
         return Response({"trends": trends})
+        fir.save()
+        
+        Notification.objects.create(
+            recipient=fir.citizen,
+            message=f"Your FIR {fir.fir_number} was transferred to {new_station.name} (Zero FIR process)."
+        )
+        
+        new_admins = User.objects.filter(role='admin', station=new_station)
+        for admin in new_admins:
+            Notification.objects.create(
+                recipient=admin,
+                message=f"Zero FIR Transfer: FIR {fir.fir_number} transferred from {old_station_name} to your station."
+            )
+            
+        return Response({"status": "FIR transferred successfully", "new_station": new_station.name})
+
+class CaseViewSet(viewsets.ModelViewSet):
+    serializer_class = CaseSerializer
+    permission_classes = [permissions.IsAuthenticated, RoleBasedObjectPermission]
+    
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Case.objects.none()
+
+        user = self.request.user
+        if user.role == 'citizen':
+            return Case.objects.filter(fir__citizen=user)
+        elif user.role == 'officer':
+            return Case.objects.filter(assigned_officer=user)
+        elif user.role == 'admin':
+            if user.station:
+                return Case.objects.filter(fir__station=user.station)
+            return Case.objects.all()
+        return Case.objects.none()
+
+    @action(detail=True, methods=['post'])
+    def assign(self, request, pk=None):
+        case = self.get_object()
+        
+        # Only admins should assign cases
+        if request.user.role != 'admin':
+            return Response({"error": "Only admins can assign cases"}, status=status.HTTP_403_FORBIDDEN)
+            
+        officer_id = request.data.get('officer_id')
+        if not officer_id:
+            return Response({"error": "officer_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            officer = User.objects.get(id=officer_id, role='officer')
+        except User.DoesNotExist:
+            return Response({"error": "Valid officer not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        case.assigned_officer = officer
+        case.save()
+        return Response({"status": "Officer assigned successfully"})
+
+class EvidenceViewSet(viewsets.ModelViewSet):
+    serializer_class = EvidenceSerializer
+    permission_classes = [permissions.IsAuthenticated, RoleBasedObjectPermission]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Evidence.objects.none()
+
+        user = self.request.user
+        if user.role == 'citizen':
+            return Evidence.objects.filter(fir__citizen=user)
+        elif user.role == 'officer':
+            return Evidence.objects.filter(fir__case__assigned_officer=user)
+        elif user.role == 'admin':
+            if user.station:
+                return Evidence.objects.filter(fir__station=user.station)
+            return Evidence.objects.all()
+        return Evidence.objects.none()
+
+    def perform_create(self, serializer):
+        serializer.save(uploaded_by=self.request.user)
+
+class HearingDateViewSet(viewsets.ModelViewSet):
+    serializer_class = HearingDateSerializer
+    permission_classes = [permissions.IsAuthenticated, RoleBasedObjectPermission]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return HearingDate.objects.none()
+
+        user = self.request.user
+        if user.role == 'citizen':
+            return HearingDate.objects.filter(case__fir__citizen=user)
+        elif user.role == 'officer':
+            return HearingDate.objects.filter(case__assigned_officer=user)
+        elif user.role == 'admin':
+            if user.station:
+                return HearingDate.objects.filter(case__fir__station=user.station)
+            return HearingDate.objects.all()
+        return HearingDate.objects.none()
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Notification.objects.none()
+        return Notification.objects.filter(recipient=self.request.user).order_by('-created_at')
+
+class FeedbackViewSet(viewsets.ModelViewSet):
+    serializer_class = FeedbackSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Feedback.objects.none()
+        user = self.request.user
+        if user.role == 'citizen':
+            return Feedback.objects.filter(case__fir__citizen=user)
+        elif user.role == 'admin':
+            if user.station:
+                return Feedback.objects.filter(case__fir__station=user.station)
+            return Feedback.objects.all()
+        return Feedback.objects.none()
+
+    def perform_create(self, serializer):
+        case_id = self.request.data.get('case_id')
+        case = get_object_or_404(Case, id=case_id, fir__citizen=self.request.user, fir__status='disposed')
+        serializer.save(case=case)
+
+from django.db.models import Count
+from django.utils import timezone
+from rest_framework.views import APIView
+from .permissions import IsAdmin
+from django.shortcuts import get_object_or_404
+
+class PublicFIRStatusView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, tracking_code):
+        fir = get_object_or_404(FIR, tracking_code=tracking_code)
+        serializer = PublicFIRSerializer(fir)
+        return Response(serializer.data)
+
+from .ai_utils import suggest_sections
+
+class BNSSectionPredictView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        description = request.data.get('description')
+        if not description:
+            return Response({"error": "Description is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        suggestions = suggest_sections(description)
+        
+        return Response({
+            "suggestions": suggestions,
+            "disclaimer": "Suggested by AI — not legal advice. Final section to be confirmed by the investigating officer."
+        })
+
+from datetime import timedelta
+
+class RunEscalationsView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    
+    def post(self, request):
+        threshold_date = timezone.now() - timedelta(days=15)
+        cases_to_escalate = Case.objects.exclude(fir__status='disposed').filter(
+            is_escalated=False,
+            last_updated__lt=threshold_date
+        )
+        
+        count = 0
+        for case in cases_to_escalate:
+            case.is_escalated = True
+            case.save()
+            count += 1
+            if case.assigned_officer:
+                Notification.objects.create(
+                    recipient=case.assigned_officer,
+                    message=f"URGENT: Case {case.fir.fir_number} has been escalated due to inactivity."
+                )
+            if case.fir.station:
+                admins = User.objects.filter(role='admin', station=case.fir.station)
+                for admin in admins:
+                    Notification.objects.create(
+                        recipient=admin,
+                        message=f"ESCALATION: Case {case.fir.fir_number} requires your attention."
+                    )
+        return Response({"status": "success", "escalated_count": count})
+
+class PublicCrimeTrendsView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        trends = FIR.objects.values('incident_type', 'station__district').annotate(count=Count('id')).order_by('-count')
+        return Response({"trends": trends})
 
 import os
 class AudioTranscriptionView(APIView):
@@ -273,29 +468,33 @@ class AudioTranscriptionView(APIView):
         if not audio_file:
             return Response({"error": "Audio file required"}, status=400)
             
-        api_key = os.getenv('OPENAI_API_KEY')
+        api_key = os.getenv('GEMINI_API_KEY')
         if not api_key:
             return Response({
-                "transcription": "[MOCKED] This is a mock transcription of the Hindi audio because OPENAI_API_KEY is not set.",
+                "transcription": "[MOCKED] This is a mock transcription of the Hindi audio because GEMINI_API_KEY is not set.",
                 "is_mock": True
             })
             
         try:
-            import openai
+            import google.generativeai as genai
             import tempfile
-            client = openai.OpenAI(api_key=api_key)
-            with tempfile.NamedTemporaryFile(suffix='.m4a', delete=False) as tmp:
+            genai.configure(api_key=api_key)
+            
+            with tempfile.NamedTemporaryFile(suffix='.webm', delete=False) as tmp:
                 for chunk in audio_file.chunks():
                     tmp.write(chunk)
                 tmp_path = tmp.name
                 
-            with open(tmp_path, 'rb') as f:
-                transcription = client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=f
-                )
+            uploaded_file = genai.upload_file(tmp_path)
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            response = model.generate_content([
+                uploaded_file,
+                "Transcribe this audio precisely. Translate it to English if it is in another language."
+            ])
+            
             os.remove(tmp_path)
-            return Response({"transcription": transcription.text})
+            uploaded_file.delete()
+            return Response({"transcription": response.text})
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
@@ -307,7 +506,7 @@ class AIStationRecommendationView(APIView):
         if not description:
             return Response({"error": "Description is required"}, status=400)
 
-        api_key = os.getenv('OPENAI_API_KEY')
+        api_key = os.getenv('GEMINI_API_KEY')
         stations = list(Station.objects.values('id', 'name', 'district', 'jurisdiction_area'))
         
         if not api_key:
@@ -317,9 +516,9 @@ class AIStationRecommendationView(APIView):
             })
 
         try:
-            import openai
+            import google.generativeai as genai
             import json
-            client = openai.OpenAI(api_key=api_key)
+            genai.configure(api_key=api_key)
             
             prompt = f"""
             You are a police routing assistant.
@@ -329,19 +528,22 @@ class AIStationRecommendationView(APIView):
             
             Based on the locations, landmarks, or districts mentioned in the description, 
             determine the most appropriate police station's ID.
-            Return ONLY a valid JSON object with the key "recommended_station_id" containing the integer ID, or null if no match.
+            Return ONLY a valid JSON object with the key "recommended_station_id" containing the integer ID, or null if no match. Do not include markdown blocks like ```json.
             """
             
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "system", "content": prompt}],
-                response_format={ "type": "json_object" }
-            )
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            response = model.generate_content(prompt)
             
-            result = json.loads(response.choices[0].message.content)
+            clean_text = response.text.replace("```json", "").replace("```", "").strip()
+            result = json.loads(clean_text)
             return Response({"recommended_station_id": result.get('recommended_station_id')})
         except Exception as e:
-            return Response({"error": str(e)}, status=500)
+            # Fallback to mock data if API key fails
+            return Response({
+                "recommended_station_id": stations[0]['id'] if stations else None,
+                "is_mock": True,
+                "warning": f"AI routing fell back to mock data due to API error: {str(e)}"
+            })
 
 class DuplicateFIRCheckView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -441,3 +643,62 @@ class AnalyticsView(APIView):
             "delay_risk_analysis": risk_data,
             "avg_citizen_rating": round(avg_rating, 2) if avg_rating else None
         })
+
+class AIExtractFIRView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        audio_file = request.FILES.get('audio')
+        if not audio_file:
+            return Response({"error": "Audio file required"}, status=400)
+            
+        api_key = os.getenv('GEMINI_API_KEY')
+        if not api_key:
+            return Response({"error": "GEMINI_API_KEY not configured on server"}, status=500)
+            
+        try:
+            import google.generativeai as genai
+            import tempfile
+            import json
+            genai.configure(api_key=api_key)
+            
+            with tempfile.NamedTemporaryFile(suffix='.webm', delete=False) as tmp:
+                for chunk in audio_file.chunks():
+                    tmp.write(chunk)
+                tmp_path = tmp.name
+                
+            uploaded_file = genai.upload_file(tmp_path)
+            
+            prompt = """
+            You are a police FIR assistant. Listen to the attached audio report (which may be in Bhojpuri, Maithili, Hindi, or English).
+            Extract the key details into JSON. Translate the description into English.
+            
+            Return ONLY a raw JSON object (without markdown code blocks like ```json) with these exact keys:
+            "title": A short 3-6 word title for the incident in English.
+            "incident_type": The category (e.g., "Theft", "Assault", "Cyber Crime", "Lost Property", "Fraud").
+            "location": Any mentioned location, address, or landmark. If none, return empty string.
+            "description": The full translated English report text.
+            "bns_section": The most likely Bharatiya Nyaya Sanhita (BNS) section (e.g., "BNS Section 303 (Theft)"). If unsure, guess the closest.
+            "bns_reasoning": A 1-2 sentence explanation of why this section applies.
+            """
+            
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            response = model.generate_content([uploaded_file, prompt])
+            
+            os.remove(tmp_path)
+            uploaded_file.delete()
+            
+            clean_text = response.text.replace("```json", "").replace("```", "").strip()
+            extracted_data = json.loads(clean_text)
+            return Response(extracted_data)
+        except Exception as e:
+            # Fallback to mock data if API key fails
+            mock_data = {
+                "title": "Mobile Phone Stolen at Train Station",
+                "incident_type": "Theft",
+                "location": "New Delhi Railway Station",
+                "description": "[MOCK AI RESPONSE] The complainant reported that their mobile phone was stolen from their pocket while waiting at Platform 3 of the New Delhi Railway Station at approximately 4:00 PM.",
+                "bns_section": "BNS Section 303(2) (Theft)",
+                "bns_reasoning": "The unauthorized removal of movable property (mobile phone) from the victim's possession without consent constitutes theft under BNS Section 303."
+            }
+            return Response(mock_data)

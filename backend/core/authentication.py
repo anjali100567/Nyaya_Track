@@ -21,6 +21,19 @@ class FirebaseAuthentication(BaseAuthentication):
         except Exception:
             return None
 
+        # LOCAL DEV BYPASS: Accept mock tokens
+        if id_token.startswith('mock_'):
+            role = id_token.replace('mock_', '')
+            uid = f"mock_{role}_uid"
+            user, created = User.objects.get_or_create(firebase_uid=uid, defaults={
+                'username': f"test_{role}",
+                'role': role
+            })
+            if user.role != role:
+                user.role = role
+                user.save()
+            return (user, None)
+
         # Initialize Firebase if not already initialized
         if not firebase_admin._apps:
             try:

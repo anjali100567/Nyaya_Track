@@ -1,24 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import TopNav from '../components/TopNav';
 import { FileText, Clock, CheckCircle, AlertTriangle, ArrowRight, QrCode, PhoneCall, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getMyFIRs, FIR } from '../api/firs';
 import './CitizenDashboard.css';
 
 const CitizenDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const [firs, setFirs] = useState<FIR[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFirs = async () => {
+      try {
+        const data = await getMyFIRs();
+        setFirs(data);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFirs();
+  }, []);
+
+  const totalFirs = firs.length;
+  const closedCases = firs.filter(f => f.status === 'disposed').length;
+  const activeCases = totalFirs - closedCases;
 
   const stats = [
-    { label: 'Total FIRs', value: 3, icon: <FileText size={24} />, color: 'navy' },
-    { label: 'Active Cases', value: 1, icon: <Clock size={24} />, color: 'amber' },
-    { label: 'Closed Cases', value: 2, icon: <CheckCircle size={24} />, color: 'green' },
-    { label: 'Upcoming Hearings', value: 1, icon: <Calendar size={24} />, color: 'gold' }
+    { label: 'Total FIRs', value: totalFirs, icon: <FileText size={24} />, color: 'navy' },
+    { label: 'Active Cases', value: activeCases, icon: <Clock size={24} />, color: 'amber' },
+    { label: 'Closed Cases', value: closedCases, icon: <CheckCircle size={24} />, color: 'green' },
+    { label: 'Upcoming Hearings', value: 0, icon: <Calendar size={24} />, color: 'gold' }
   ];
 
-  const recentFIRs = [
-    { id: 'FIR-2026-89A', title: 'Mobile Theft at Station', date: 'Oct 12, 2026', status: 'Under Investigation' },
-    { id: 'FIR-2026-42B', title: 'Lost Wallet', date: 'Sep 05, 2026', status: 'Disposed' }
-  ];
+  const recentFIRs = firs.slice(0, 3); // Get top 3 recent FIRs
 
   return (
     <div className="dashboard-layout">
@@ -56,15 +74,19 @@ const CitizenDashboard: React.FC = () => {
                 <a href="#" className="view-all" onClick={(e) => {e.preventDefault(); navigate('/citizen/my-firs');}}>View All</a>
               </div>
               <div className="fir-list">
-                {recentFIRs.map((fir, idx) => (
-                  <div key={idx} className="fir-row">
+                {loading ? (
+                  <p style={{ padding: '16px' }}>Loading recent FIRs...</p>
+                ) : recentFIRs.length === 0 ? (
+                  <p style={{ padding: '16px' }}>No FIRs registered yet.</p>
+                ) : recentFIRs.map((fir) => (
+                  <div key={fir.id} className="fir-row">
                     <div className="fir-details">
-                      <span className="fir-id">{fir.id}</span>
-                      <span className="fir-title">{fir.title}</span>
-                      <span className="fir-date">{fir.date}</span>
+                      <span className="fir-id">{fir.fir_number}</span>
+                      <span className="fir-title">{fir.incident_type}</span>
+                      <span className="fir-date">{new Date(fir.created_at).toLocaleDateString()}</span>
                     </div>
-                    <div className={`status-badge ${fir.status === 'Disposed' ? 'closed' : 'active'}`}>
-                      {fir.status}
+                    <div className={`status-badge ${fir.status === 'disposed' ? 'closed' : 'active'}`}>
+                      {fir.status.replace('_', ' ').toUpperCase()}
                     </div>
                   </div>
                 ))}

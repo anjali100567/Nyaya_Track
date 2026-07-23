@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+import dj_database_url
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -91,15 +92,23 @@ FIREBASE_CREDENTIALS_JSON = os.getenv('FIREBASE_CREDENTIALS_JSON', '')
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'mysql.connector.django',
-        'NAME': os.getenv('DB_NAME', 'fir_system_db').strip(),
-        'USER': os.getenv('DB_USER', 'root').strip(),
-        'PASSWORD': os.getenv('DB_PASSWORD', '').strip(),
-        'HOST': os.getenv('DB_HOST', 'localhost').strip(),
-        'PORT': os.getenv('DB_PORT', '3306').strip(),
-    }
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
 }
+# Original MySQL config:
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'mysql.connector.django',
+#         'NAME': os.getenv('DB_NAME', 'fir_system_db').strip(),
+#         'USER': os.getenv('DB_USER', 'root').strip(),
+#         'PASSWORD': os.getenv('DB_PASSWORD', '').strip(),
+#         'HOST': os.getenv('DB_HOST', 'localhost').strip(),
+#         'PORT': os.getenv('DB_PORT', '3306').strip(),
+#     }
+# }
 
 
 # Password validation
@@ -139,12 +148,15 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+CORS_ALLOW_ALL_ORIGINS = True
+
 CORS_ALLOWED_ORIGINS = [
     # Placeholder for mobile dev environment, e.g. Expo web or local testing
     "http://localhost:8081",
     "http://127.0.0.1:8081",
     # Placeholder for future web client
     "http://localhost:3000",
+    "http://localhost:5173",
 ]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

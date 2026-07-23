@@ -4,6 +4,7 @@ import {
   Home, FileText, Activity, Bell, PhoneCall, LogOut, Scale, User, 
   Settings, HelpCircle, BarChart3, Briefcase, Camera, Calendar, Inbox, Users
 } from 'lucide-react';
+import Logo from './Logo';
 import './Sidebar.css';
 
 const Sidebar: React.FC = () => {
@@ -37,15 +38,23 @@ const Sidebar: React.FC = () => {
   ];
 
   let links = citizenLinks;
-  if (role === 'officer') links = officerLinks;
-  if (role === 'admin') links = adminLinks;
+  let bgColor = 'var(--citizen-green)';
+  
+  if (role === 'officer') {
+    links = officerLinks;
+    bgColor = 'var(--officer-navy)';
+  }
+  if (role === 'admin') {
+    links = adminLinks;
+    bgColor = 'var(--admin-purple)';
+  }
+
+  const sidebarStyle = { backgroundColor: bgColor };
 
   return (
-    <aside className="sidebar glass-card">
+    <aside className="sidebar" style={sidebarStyle}>
       <div className="sidebar-header">
-        <div className="logo-mini">
-          <Scale size={24} className="gold-icon" />
-        </div>
+        <Logo size={40} className="sidebar-logo" />
         <h2>NYAYATRACK</h2>
       </div>
       

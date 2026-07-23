@@ -1,17 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import TopNav from '../components/TopNav';
 import { Search, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import { getMyFIRs, FIR } from '../api/firs';
+
 const MyFIRs: React.FC = () => {
   const navigate = useNavigate();
+  const [firs, setFirs] = useState<FIR[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const firList = [
-    { id: 'FIR-2026-89A', title: 'Mobile Theft at Station', station: 'New Delhi PS', status: 'Investigation', officer: 'Insp. R. Sharma', priority: 'High', date: 'Oct 12, 2026' },
-    { id: 'FIR-2026-42B', title: 'Lost Wallet', station: 'Connaught Place PS', status: 'Disposed', officer: 'SI A. Gupta', priority: 'Low', date: 'Sep 05, 2026' },
-    { id: 'FIR-2026-11C', title: 'Cyber Fraud (UPI)', station: 'Cyber Cell HQ', status: 'Charge Sheet', officer: 'Insp. V. Singh', priority: 'Medium', date: 'Aug 21, 2026' }
-  ];
+  useEffect(() => {
+    const fetchFirs = async () => {
+      try {
+        const data = await getMyFIRs();
+        setFirs(data);
+      } catch (error) {
+        console.error("Failed to fetch FIRs", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFirs();
+  }, []);
 
   return (
     <div className="dashboard-layout">
@@ -41,16 +53,20 @@ const MyFIRs: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {firList.map((fir, idx) => (
-                <tr key={idx}>
-                  <td><strong>{fir.id}</strong></td>
-                  <td>{fir.title}</td>
-                  <td>{fir.station}</td>
-                  <td><span className={`priority-badge ${fir.status === 'Disposed' ? 'low' : 'medium'}`}>{fir.status}</span></td>
-                  <td>{fir.officer}</td>
-                  <td>{fir.date}</td>
+              {loading ? (
+                <tr><td colSpan={7} style={{ textAlign: 'center' }}>Loading FIRs...</td></tr>
+              ) : firs.length === 0 ? (
+                <tr><td colSpan={7} style={{ textAlign: 'center' }}>No FIRs found.</td></tr>
+              ) : firs.map((fir) => (
+                <tr key={fir.id}>
+                  <td><strong>{fir.fir_number}</strong></td>
+                  <td>{fir.incident_type}</td>
+                  <td>{fir.station_name}</td>
+                  <td><span className={`priority-badge ${fir.status === 'disposed' ? 'low' : 'medium'}`}>{fir.status.replace('_', ' ').toUpperCase()}</span></td>
+                  <td>{fir.case_details?.assigned_officer_name || 'Unassigned'}</td>
+                  <td>{new Date(fir.date).toLocaleDateString()}</td>
                   <td>
-                    <button className="btn-text" onClick={() => navigate('/citizen/track')}>
+                    <button className="btn-text" onClick={() => navigate(`/citizen/track/${fir.tracking_code}`)}>
                       Track <ChevronRight size={16} />
                     </button>
                   </td>

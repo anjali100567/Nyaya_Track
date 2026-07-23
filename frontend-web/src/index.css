@@ -1,18 +1,22 @@
 :root {
   /* Color Palette */
   --primary-navy: #0F2747;
+  --citizen-green: #1B4332;
+  --officer-navy: #0F2747;
+  --admin-purple: #4A3B78;
   --police-khaki: #C7B27A;
   --brass-gold: #D4AF37;
   --ivory-bg: #F8F6F1;
   --white-cards: #FFFFFF;
   --forest-green: #2E7D32;
+  --brand-orange: #E87A00;
   --warning-amber: #F9A825;
   --critical-red: #C62828;
   --text-main: #263238;
   --text-light: #607D8B;
   
   /* Gradients */
-  --premium-gradient: linear-gradient(135deg, var(--primary-navy) 0%, #1a365d 100%);
+  --premium-gradient: linear-gradient(135deg, var(--brass-gold) 0%, #B8972E 100%);
   --gold-gradient: linear-gradient(135deg, var(--brass-gold) 0%, var(--police-khaki) 100%);
 
   /* Layout & Spacing */
@@ -81,9 +85,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-primary {
-  background: var(--premium-gradient);
-  color: white;
-  box-shadow: 0 4px 12px rgba(15, 39, 71, 0.2);
+  background: var(--brass-gold);
+  color: var(--primary-navy);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
 }
 
 .btn-primary:hover {

@@ -4,7 +4,7 @@ from .views import (
     FIRViewSet, CaseViewSet, EvidenceViewSet, HearingDateViewSet, AnalyticsView, 
     PublicFIRStatusView, BNSSectionPredictView,
     NotificationViewSet, FeedbackViewSet, RunEscalationsView, PublicCrimeTrendsView, AudioTranscriptionView,
-    AIStationRecommendationView, DuplicateFIRCheckView
+    AIStationRecommendationView, DuplicateFIRCheckView, AIExtractFIRView
 )
 
 router = DefaultRouter()
@@ -25,4 +25,5 @@ urlpatterns = [
     path('transcribe-audio/', AudioTranscriptionView.as_view(), name='transcribe-audio'),
     path('recommend-station/', AIStationRecommendationView.as_view(), name='recommend-station'),
     path('check-duplicate-fir/', DuplicateFIRCheckView.as_view(), name='check-duplicate-fir'),
+    path('ai-extract-fir/', AIExtractFIRView.as_view(), name='ai-extract-fir'),
 ]

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Scale, Shield, User, ChevronRight } from 'lucide-react';
+import { Scale, Shield, User } from 'lucide-react';
+import Logo from '../components/Logo';
 import './Login.css';
 
 const Login: React.FC = () => {
@@ -15,67 +16,112 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-glass-panel animate-fade-in">
-        <div className="login-header">
-          <div className="logo-circle">
-            <Scale className="logo-icon" size={40} />
-          </div>
-          <h1>NYAYATRACK</h1>
-          <p className="tagline">Justice. Transparency. Trust.</p>
+    <div className="login-split-container">
+      {/* Left Branding Panel (Desktop Only) */}
+      <div className="login-left-panel desktop-only animate-fade-in">
+        <div className="branding-wrapper">
+          <Logo size={140} />
+          <h1 className="brand-text">NYAYA TRACK</h1>
+          <div className="tagline-ribbon">Justice. Transparency. Trust.</div>
         </div>
 
-        <div className="role-selector">
+        <div className="role-selector-vertical">
           <button 
-            className={`role-btn ${role === 'citizen' ? 'active' : ''}`}
+            className={`role-btn-vertical citizen ${role === 'citizen' ? 'active' : ''}`}
             onClick={() => setRole('citizen')}
           >
-            <User size={20} /> Citizen
+            <div className="role-icon-wrapper orange"><User size={20} /></div>
+            Citizen
           </button>
+          
           <button 
-            className={`role-btn ${role === 'officer' ? 'active' : ''}`}
+            className={`role-btn-vertical officer ${role === 'officer' ? 'active' : ''}`}
             onClick={() => setRole('officer')}
           >
-            <Shield size={20} /> Officer
+            <div className="role-icon-wrapper green"><Shield size={20} /></div>
+            Police Officer
           </button>
+          
           <button 
-            className={`role-btn ${role === 'admin' ? 'active' : ''}`}
+            className={`role-btn-vertical admin ${role === 'admin' ? 'active' : ''}`}
             onClick={() => setRole('admin')}
           >
-            <Scale size={20} /> Admin
+            <div className="role-icon-wrapper purple"><Scale size={20} /></div>
+            Admin
           </button>
         </div>
+      </div>
 
-        <form onSubmit={handleLogin} className="login-form">
-          <div className="input-group">
-            <label>Phone Number or Aadhar</label>
-            <input type="text" placeholder="Enter details" required />
-          </div>
-          <div className="input-group">
-            <label>Password</label>
-            <input type="password" placeholder="••••••••" required />
-          </div>
+      {/* Right Form Panel */}
+      <div className="login-right-panel animate-fade-in" style={{ animationDelay: '0.1s' }}>
+        <div className="login-form-wrapper">
           
-          <div className="form-options">
-            <label className="checkbox-container">
-              <input type="checkbox" />
-              <span className="checkmark"></span>
-              Remember me
-            </label>
-            <a href="#" className="forgot-link">Forgot password?</a>
+          {/* Mobile Only Branding & Roles */}
+          <div className="mobile-only mobile-header-section">
+            <Logo size={80} className="mobile-logo" />
+            <h1 className="mobile-brand">NYAYA TRACK</h1>
+            <div className="tagline-ribbon mobile-ribbon">Justice. Transparency. Trust.</div>
+            
+            <div className="role-selector-horizontal">
+              <button 
+                className={`role-btn-horiz citizen ${role === 'citizen' ? 'active' : ''}`}
+                onClick={() => setRole('citizen')}
+              >
+                <User size={16} /> Citizen
+              </button>
+              <button 
+                className={`role-btn-horiz officer ${role === 'officer' ? 'active' : ''}`}
+                onClick={() => setRole('officer')}
+              >
+                <Shield size={16} /> Officer
+              </button>
+              <button 
+                className={`login-btn ${role}`}
+                onClick={() => {
+                  localStorage.setItem('authToken', `mock_${role}`);
+                  navigate(`/${role}`);
+                }}
+              >
+                Login
+              </button>
+            </div>
           </div>
 
-          <button type="submit" className="btn btn-primary full-width">
-            Secure Login <ChevronRight size={18} />
-          </button>
-          
-          <div className="divider"><span>OR</span></div>
-          
-          <button type="button" className="btn btn-outline full-width google-btn">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="18" />
-            Sign in with Google
-          </button>
-        </form>
+          <div className="form-header">
+            <h2>Welcome Back</h2>
+            <p>Sign in to continue</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="login-form">
+            <div className="input-group">
+              <label>Email / Mobile Number</label>
+              <div className="input-with-icon">
+                <User size={18} className="input-icon" />
+                <input type="text" placeholder="Enter email or mobile" required />
+              </div>
+            </div>
+            
+            <div className="input-group">
+              <label>Password</label>
+              <div className="input-with-icon">
+                <Shield size={18} className="input-icon" />
+                <input type="password" placeholder="Enter password" required />
+              </div>
+            </div>
+            
+            <div className="form-options right-align">
+              <a href="#" className="forgot-link">Forgot Password?</a>
+            </div>
+
+            <button type="submit" className="btn btn-login full-width">
+              Login
+            </button>
+            
+            <div className="signup-prompt">
+              Don't have an account? <a href="#">Sign up</a>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
